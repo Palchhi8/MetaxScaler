@@ -1,0 +1,72 @@
+# OpenEnv Environment Manifest
+# https://github.com/meta-pytorch/OpenEnv
+
+name: meeting_env
+display_name: "Meeting Decision Intelligence Environment"
+version: "1.0.0"
+description: >
+  An OpenEnv-compliant environment that evaluates AI agents for
+  Decision Intelligence in real-world meeting scenarios. Agents must
+  summarize meetings, extract action items, and make complex decisions
+  under conflicting constraints.
+
+# Environment metadata
+author: "MetaxScaler"
+license: "BSD-3-Clause"
+tags:
+  - decision-intelligence
+  - meeting-analysis
+  - nlp
+  - text-understanding
+
+# Python requirements
+python_version: ">=3.10"
+dependencies:
+  - pydantic>=2.7.0
+  - openai>=1.30.0
+  - python-dotenv>=1.0.1
+  - fastapi>=0.104.0
+  - uvicorn>=0.24.0
+
+# Environment interface
+models:
+  action: meeting_env.models.MeetingAction
+  observation: meeting_env.models.MeetingObservation
+  state: meeting_env.models.MeetingState
+
+# Server configuration
+server:
+  module: meeting_env.app:app
+  host: "0.0.0.0"
+  port: 8000
+  dockerfile: Dockerfile
+
+# Task configuration
+tasks:
+  count: 3
+  list:
+    - id: easy_summarization
+      difficulty: easy
+      description: "Meeting Summarization — extract key topics from a raw meeting discussion"
+    - id: medium_action_items
+      difficulty: medium
+      description: "Action Item Extraction — identify who does what with deadlines"
+    - id: hard_decision
+      difficulty: hard
+      description: "Decision Intelligence — make optimal decisions under conflicting constraints"
+
+# Reward specification
+reward:
+  type: float
+  range: [0.0, 1.0]
+  scoring: partial
+  method: deterministic
+
+# Inference script
+inference:
+  script: meeting_env/inference.py
+  timeout_minutes: 20
+  env_vars:
+    - API_BASE_URL
+    - MODEL_NAME
+    - OPENAI_API_KEY
