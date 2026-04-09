@@ -82,7 +82,10 @@ def main() -> None:
     # ── Configuration ──────────────────────────────────────────────────
     api_base_url = get_env_var("API_BASE_URL", "https://api.openai.com/v1")
     model_name = get_env_var("MODEL_NAME", "gpt-4o")
-    api_key = get_env_var("HF_TOKEN")
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN")
+    if not api_key:
+        print("[ERROR] Neither OPENAI_API_KEY nor HF_TOKEN environment variables were found.", file=sys.stderr)
+        sys.exit(1)
 
     client = OpenAI(base_url=api_base_url, api_key=api_key)
 
