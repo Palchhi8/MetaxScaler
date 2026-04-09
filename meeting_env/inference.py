@@ -82,7 +82,7 @@ def main() -> None:
     # ── Configuration ──────────────────────────────────────────────────
     api_base_url = get_env_var("API_BASE_URL", "https://api.openai.com/v1")
     model_name = get_env_var("MODEL_NAME", "gpt-4o")
-    api_key = get_env_var("OPENAI_API_KEY")
+    api_key = get_env_var("HF_TOKEN")
 
     client = OpenAI(base_url=api_base_url, api_key=api_key)
 
