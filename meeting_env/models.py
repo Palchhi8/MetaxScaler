@@ -75,6 +75,18 @@ class MeetingReward(BaseModel):
 
 
 
+class MeetingReward(BaseModel):
+    """Explicit Pydantic wrapper for Reward values to satisfy validation.
+    
+    Attributes:
+        value: Float reward in [0.0, 1.0]
+        breakdown: Breakdown of keyword vs entity vs rule scores
+    """
+    value: float = Field(..., ge=0.0, le=1.0, description="The mathematical scalar reward out of 1.0.")
+    breakdown: Dict[str, float] = Field(default_factory=dict, description="Detailed breakdown of the reward components.")
+
+
+
 class MeetingState(BaseModel):
     """Tracks episode-level metadata returned by state().
 

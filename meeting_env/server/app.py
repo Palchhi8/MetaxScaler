@@ -36,8 +36,8 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 # Import from local models.py (PYTHONPATH includes /app/env in Docker)
-from meeting_env.models import MeetingAction, MeetingObservation
-from meeting_env.env import MeetingEnvironment
+from models import MeetingAction, MeetingObservation
+from env import MeetingEnvironment
 
 
 # Create the app with web interface and README integration

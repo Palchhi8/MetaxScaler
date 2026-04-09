@@ -27,8 +27,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 # ── Import the environment directly (no server needed for local runs) ──
-from meeting_env.env import MeetingEnvironment
-from meeting_env.models import MeetingAction
+from env import MeetingEnvironment
+from models import MeetingAction
 
 # Load .env if present
 load_dotenv()

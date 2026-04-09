@@ -16,9 +16,9 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, Tuple
 
-from meeting_env.models import MeetingAction, MeetingObservation, MeetingState
-from meeting_env.tasks import ALL_TASKS, get_task, get_task_count
-from meeting_env.grader import grade_response
+from models import MeetingAction, MeetingObservation, MeetingState
+from tasks import ALL_TASKS, get_task, get_task_count
+from grader import grade_response
 
 
 class MeetingEnvironment:
