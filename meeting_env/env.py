@@ -46,6 +46,14 @@ class MeetingEnvironment(Environment):
         "done": True,
     }
 
+    # Discovery metadata for validators
+    tasks = {
+        "easy_summarization": "Meeting Summarization",
+        "medium_action_items": "Action Item Extraction",
+        "hard_decision": "Decision Intelligence",
+        "executive_triage": "Executive Triage"
+    }
+
     def __init__(self) -> None:
         super().__init__()
         # Load shared state into this instance
@@ -68,16 +76,35 @@ class MeetingEnvironment(Environment):
         }
 
     # ── OpenEnv interface ──────────────────────────────────────────────
+    
+    @property
+    def total_tasks(self) -> int:
+        """Expose total tasks to the framework."""
+        return get_task_count()
 
     def reset(
         self,
         seed: Optional[int] = None,
         episode_id: Optional[str] = None,
+        task_id: Optional[str] = None,
         **kwargs: Any,
     ) -> MeetingObservation:
-        """Initialise a new episode and return the first observation."""
+        """Initialise a new episode and return the task observation.
+        
+        Supports jumping to a specific task via task_id for validation purposes.
+        """
         self._episode_id = episode_id or str(uuid.uuid4())
+        
+        # Determine starting task
         self._task_index = 0
+        target_id = task_id or kwargs.get("task_id")
+        if target_id:
+            from tasks import ALL_TASKS
+            for i, t in enumerate(ALL_TASKS):
+                if t["task_id"] == target_id:
+                    self._task_index = i
+                    break
+
         self._step_count = 0
         self._cumulative_reward = 0.0
         self._task_rewards = []
@@ -93,7 +120,11 @@ class MeetingEnvironment(Environment):
             reward=0.01,
             done=False,
             feedback=None,
-            metadata={"episode_id": self._episode_id, "task_number": 1},
+            metadata={
+                "episode_id": self._episode_id, 
+                "task_number": self._task_index + 1,
+                "total_tasks": self.total_tasks
+            },
         )
 
     def step(
