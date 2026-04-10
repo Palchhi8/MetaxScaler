@@ -3,21 +3,25 @@ env.py — OpenEnv-compliant environment for Meeting Decision Intelligence.
 
 Implements the Environment interface with:
   - reset()  → returns initial MeetingObservation
-  - step(action: MeetingAction) → returns MeetingObservation 
+  - step(action: MeetingAction) → returns MeetingObservation
   - state    → returns MeetingState
 
 The environment cycles through 3 tasks (easy → medium → hard) in a single
 episode.  Each task is SINGLE-STEP: the agent receives the observation on
 reset/previous-step, submits a response, and is graded immediately.
+
+STATE PERSISTENCE: Uses class-level state sharing so that the OpenEnv HTTP
+server (which creates a new instance per request) can maintain episode state
+across reset() and step() calls.
 """
 
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from models import MeetingAction, MeetingObservation, MeetingState
-from tasks import ALL_TASKS, get_task, get_task_count
+from tasks import get_task, get_task_count
 from grader import grade_response
 from openenv.core.env_server import Environment
 
@@ -25,25 +29,40 @@ from openenv.core.env_server import Environment
 class MeetingEnvironment(Environment):
     """OpenEnv-compliant Meeting Decision Intelligence Environment.
 
-    Lifecycle
-    ---------
-    1. Call ``reset()`` to start a new episode.  Returns the first observation.
-    2. Call ``step(action)`` with the agent's response.  The environment grades
-       the response, advances to the next task, and returns the next observation.
-    3. Repeat until ``observation.done`` is ``True`` (all 3 tasks completed).
-    4. Call ``reset()`` to start a new episode.
-
-    ``state`` can be called at any time to inspect episode metadata.
+    Uses class-level state persistence so that stateless HTTP handlers
+    (which create a new instance per request) can share episode state.
     """
+
+    # ── Shared state across all instances (required for stateless HTTP) ──
+    _shared = {
+        "episode_id": "",
+        "task_index": 0,
+        "step_count": 0,
+        "cumulative_reward": 0.0,
+        "task_rewards": [],
+        "done": True,
+    }
 
     def __init__(self) -> None:
         super().__init__()
-        self._episode_id: str = ""
-        self._task_index: int = 0
-        self._step_count: int = 0
-        self._cumulative_reward: float = 0.0
-        self._task_rewards: list[float] = []
-        self._done: bool = True  # forces reset before first step
+        # Load shared state into this instance
+        self._episode_id: str = self._shared["episode_id"]
+        self._task_index: int = self._shared["task_index"]
+        self._step_count: int = self._shared["step_count"]
+        self._cumulative_reward: float = self._shared["cumulative_reward"]
+        self._task_rewards: list[float] = list(self._shared["task_rewards"])
+        self._done: bool = self._shared["done"]
+
+    def _persist(self) -> None:
+        """Save current state to class-level storage."""
+        MeetingEnvironment._shared = {
+            "episode_id": self._episode_id,
+            "task_index": self._task_index,
+            "step_count": self._step_count,
+            "cumulative_reward": self._cumulative_reward,
+            "task_rewards": list(self._task_rewards),
+            "done": self._done,
+        }
 
     # ── OpenEnv interface ──────────────────────────────────────────────
 
@@ -60,6 +79,7 @@ class MeetingEnvironment(Environment):
         self._cumulative_reward = 0.0
         self._task_rewards = []
         self._done = False
+        self._persist()
 
         task = get_task(self._task_index)
         return MeetingObservation(
@@ -83,14 +103,10 @@ class MeetingEnvironment(Environment):
 
         The OpenEnv framework reads reward and done from the returned
         observation object directly (observation.reward, observation.done).
-
-        Returns:
-            MeetingObservation with reward in (0, 1) and done flag.
         """
+        # Auto-reset if called on a fresh/done instance
         if self._done:
-            raise RuntimeError(
-                "Episode is already done. Call reset() to start a new episode."
-            )
+            self.reset()
 
         # Grade current task
         task = get_task(self._task_index)
@@ -104,16 +120,16 @@ class MeetingEnvironment(Environment):
         self._task_index += 1
         done = self._task_index >= get_task_count()
         self._done = done
+        self._persist()
 
         # Build observation
         if done:
-            # Episode complete — return summary observation
             avg_reward = self._cumulative_reward / get_task_count()
             obs = MeetingObservation(
                 task_id="episode_complete",
                 task_description="All tasks completed. Episode finished.",
                 meeting_transcript="",
-                difficulty="n/a",
+                difficulty="done",
                 reward=reward,
                 done=True,
                 feedback=feedback,
@@ -126,7 +142,6 @@ class MeetingEnvironment(Environment):
                 },
             )
         else:
-            # Serve next task
             next_task = get_task(self._task_index)
             obs = MeetingObservation(
                 task_id=next_task["task_id"],

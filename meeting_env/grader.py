@@ -1,7 +1,7 @@
 """
 grader.py — Deterministic grading functions for the Meeting Environment.
 
-All graders return a float reward in [0.0, 1.0] with partial scoring.
+All graders return a float reward STRICTLY in (0, 1) — never 0.0 or 1.0.
 
 Grading strategies:
   - Easy:   keyword-based scoring
@@ -13,6 +13,19 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, List, Tuple
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Constants — strict score bounds
+# ───────────────────────────────────────────────────────────────────────────
+
+MIN_SCORE = 0.05  # Floor: never return 0.0
+MAX_SCORE = 0.95  # Ceiling: never return 1.0
+
+
+def _clamp(score: float) -> float:
+    """Clamp a score to the strict open interval (0, 1)."""
+    return max(MIN_SCORE, min(MAX_SCORE, round(score, 4)))
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -131,11 +144,11 @@ def grade_response(
         task: Task dict from tasks.py (must contain expected_keywords etc.).
 
     Returns:
-        (reward, feedback) where reward ∈ (0.0, 1.0) strictly.
+        (reward, feedback) where reward is strictly in (0, 1).
     """
-    # Penalise empty / very short responses — but never return exact 0.0
+    # Penalise empty / very short responses — never return exact 0.0
     if not response or len(response.strip()) < 10:
-        return 0.01, "Response is empty or too short. Minimal credit awarded."
+        return MIN_SCORE, f"Response is empty or too short. Minimal score: {MIN_SCORE}"
 
     difficulty = task["difficulty"]
     feedback_parts: List[str] = []
@@ -145,19 +158,16 @@ def grade_response(
     feedback_parts.append(f"Keyword coverage: {kw_score:.2f}")
 
     if difficulty == "easy":
-        # Easy: 100 % keyword-based
         reward = kw_score
         feedback_parts.append(f"Final score (keyword only): {reward:.2f}")
 
     elif difficulty == "medium":
-        # Medium: 40 % keywords + 60 % entity matching
         ent_score = _entity_score(response, task.get("expected_entities", []))
         reward = 0.40 * kw_score + 0.60 * ent_score
         feedback_parts.append(f"Entity matching: {ent_score:.2f}")
         feedback_parts.append(f"Final score (40%kw + 60%ent): {reward:.2f}")
 
     elif difficulty == "hard":
-        # Hard: 20 % keywords + 30 % entities + 50 % decision criteria
         ent_score = _entity_score(response, task.get("expected_entities", []))
         dec_score = _decision_criteria_score(
             response, task.get("decision_criteria", [])
@@ -168,10 +178,10 @@ def grade_response(
         feedback_parts.append(f"Final score (20%kw + 30%ent + 50%dec): {reward:.2f}")
 
     else:
-        reward = 0.01
-        feedback_parts.append(f"Unknown difficulty '{difficulty}'. Score: 0.01")
+        reward = MIN_SCORE
+        feedback_parts.append(f"Unknown difficulty '{difficulty}'.")
 
-    # Strictly clamp to open interval (0.01, 0.99) — validator rejects exact 0.0 or 1.0
-    reward = max(0.01, min(0.99, round(reward, 4)))
+    # STRICTLY clamp to open interval (MIN_SCORE, MAX_SCORE)
+    reward = _clamp(reward)
     feedback = " | ".join(feedback_parts)
     return reward, feedback

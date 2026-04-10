@@ -4,6 +4,7 @@ models.py — Typed Pydantic models for the Meeting Decision Intelligence Enviro
 Defines the core data structures used by the OpenEnv interface:
   - MeetingAction: what the agent submits (its response text)
   - MeetingObservation: what the environment returns (meeting transcript, task info, scores)
+  - MeetingReward: explicit reward wrapper
   - MeetingState: episode metadata for state() calls
 """
 
@@ -43,8 +44,8 @@ class MeetingObservation(BaseModel):
         task_id: Identifier for the current task (e.g. "easy", "medium", "hard").
         task_description: Human-readable description of what the agent should do.
         meeting_transcript: The raw meeting discussion text the agent must analyse.
-        difficulty: One of "easy", "medium", "hard".
-        reward: Float reward in [0.0, 1.0] (0.0 on reset, scored after step).
+        difficulty: One of "easy", "medium", "hard", or "done".
+        reward: Float reward strictly in (0, 1).
         done: Whether the current episode has ended.
         feedback: Optional grading feedback explaining the score.
         metadata: Arbitrary extra information.
@@ -53,39 +54,30 @@ class MeetingObservation(BaseModel):
     task_description: str = Field(..., description="What the agent is expected to do.")
     meeting_transcript: str = Field(..., description="Raw meeting discussion text.")
     difficulty: str = Field(..., description="Task difficulty: easy | medium | hard.")
-    reward: float = Field(default=0.0, ge=0.0, le=1.0, description="Reward score.")
+    reward: float = Field(default=0.05, description="Reward score strictly in (0, 1).")
     done: bool = Field(default=False, description="Whether the episode is finished.")
     feedback: Optional[str] = Field(default=None, description="Grading feedback.")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Extra info.")
 
 
 # ---------------------------------------------------------------------------
-# State — episode metadata
+# Reward — explicit wrapper
 # ---------------------------------------------------------------------------
 
 class MeetingReward(BaseModel):
-    """Explicit Pydantic wrapper for Reward values to satisfy validation.
-    
+    """Explicit Pydantic wrapper for Reward values.
+
     Attributes:
-        value: Float reward in [0.0, 1.0]
+        value: Float reward strictly in (0, 1)
         breakdown: Breakdown of keyword vs entity vs rule scores
     """
-    value: float = Field(..., ge=0.0, le=1.0, description="The mathematical scalar reward out of 1.0.")
-    breakdown: Dict[str, float] = Field(default_factory=dict, description="Detailed breakdown of the reward components.")
+    value: float = Field(..., description="Scalar reward strictly in (0, 1).")
+    breakdown: Dict[str, float] = Field(default_factory=dict, description="Detailed breakdown.")
 
 
-
-class MeetingReward(BaseModel):
-    """Explicit Pydantic wrapper for Reward values to satisfy validation.
-    
-    Attributes:
-        value: Float reward in [0.0, 1.0]
-        breakdown: Breakdown of keyword vs entity vs rule scores
-    """
-    value: float = Field(..., ge=0.0, le=1.0, description="The mathematical scalar reward out of 1.0.")
-    breakdown: Dict[str, float] = Field(default_factory=dict, description="Detailed breakdown of the reward components.")
-
-
+# ---------------------------------------------------------------------------
+# State — episode metadata
+# ---------------------------------------------------------------------------
 
 class MeetingState(BaseModel):
     """Tracks episode-level metadata returned by state().
