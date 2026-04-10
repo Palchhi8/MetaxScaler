@@ -26,7 +26,9 @@ import time
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# ── Import the environment directly (no server needed for local runs) ──
+# ── Ensure sibling modules are importable from any working directory ──
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from env import MeetingEnvironment
 from models import MeetingAction
 

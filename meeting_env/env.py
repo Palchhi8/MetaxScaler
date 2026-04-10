@@ -20,6 +20,9 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, Optional
 
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+
 from models import MeetingAction, MeetingObservation, MeetingState
 from tasks import get_task, get_task_count
 from grader import grade_response

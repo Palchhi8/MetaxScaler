@@ -36,6 +36,10 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 # Import from local models.py (PYTHONPATH includes /app/env in Docker)
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+
 from models import MeetingAction, MeetingObservation
 from env import MeetingEnvironment
 
