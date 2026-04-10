@@ -28,7 +28,7 @@ dev = [
 ]
 
 [project.scripts]
-server = "meeting_env.server.app:app"
+server = "meeting_env.server.app:main"
 
 [tool.setuptools]
 include-package-data = true

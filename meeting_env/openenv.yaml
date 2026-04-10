@@ -30,13 +30,13 @@ dependencies:
 
 # Environment interface
 models:
-  action: meeting_env.models.MeetingAction
-  observation: meeting_env.models.MeetingObservation
-  state: meeting_env.models.MeetingState
+  action: models.MeetingAction
+  observation: models.MeetingObservation
+  state: models.MeetingState
 
 # Server configuration
 server:
-  module: meeting_env.app:app
+  module: server.app:main
   host: "0.0.0.0"
   port: 8000
   dockerfile: Dockerfile
@@ -64,9 +64,9 @@ reward:
 
 # Inference script
 inference:
-  script: meeting_env/inference.py
+  script: inference.py
   timeout_minutes: 20
   env_vars:
     - API_BASE_URL
     - MODEL_NAME
-    - OPENAI_API_KEY
+    - HF_TOKEN
