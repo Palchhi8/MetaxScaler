@@ -131,11 +131,11 @@ def grade_response(
         task: Task dict from tasks.py (must contain expected_keywords etc.).
 
     Returns:
-        (reward, feedback) where reward ∈ [0.0, 1.0].
+        (reward, feedback) where reward ∈ (0.0, 1.0) strictly.
     """
-    # Penalise empty / very short responses
+    # Penalise empty / very short responses — but never return exact 0.0
     if not response or len(response.strip()) < 10:
-        return 0.0, "Response is empty or too short. No credit awarded."
+        return 0.01, "Response is empty or too short. Minimal credit awarded."
 
     difficulty = task["difficulty"]
     feedback_parts: List[str] = []
@@ -168,10 +168,10 @@ def grade_response(
         feedback_parts.append(f"Final score (20%kw + 30%ent + 50%dec): {reward:.2f}")
 
     else:
-        reward = 0.0
-        feedback_parts.append(f"Unknown difficulty '{difficulty}'. Score: 0.0")
+        reward = 0.01
+        feedback_parts.append(f"Unknown difficulty '{difficulty}'. Score: 0.01")
 
-    # Clamp to [0.0, 1.0]
-    reward = max(0.0, min(1.0, round(reward, 4)))
+    # Strictly clamp to open interval (0.01, 0.99) — validator rejects exact 0.0 or 1.0
+    reward = max(0.01, min(0.99, round(reward, 4)))
     feedback = " | ".join(feedback_parts)
     return reward, feedback
