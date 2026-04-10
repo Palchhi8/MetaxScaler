@@ -43,7 +43,7 @@ server:
 
 # Task configuration
 tasks:
-  count: 3
+  count: 4
   list:
     - id: easy_summarization
       difficulty: easy
@@ -54,6 +54,9 @@ tasks:
     - id: hard_decision
       difficulty: hard
       description: "Decision Intelligence — make optimal decisions under conflicting constraints"
+    - id: executive_triage
+      difficulty: extreme
+      description: "Executive Triage — perform sentiment analysis and priority-based triage"
 
 # Reward specification
 reward:

@@ -118,12 +118,20 @@ def _decision_criteria_score(response: str, criteria: List[str]) -> float:
             "analysis", "considering", "given that", "weigh", "trade-off",
             "tradeoff", "on balance", "decision",
         ],
+        "sentiment_analysis": [
+            "sentiment", "tone", "atmosphere", "disappointed", "urgent",
+            "critical", "stress", "frustrat", "serious", "gravity",
+        ],
+        "priority_classification": [
+            "priority", "triage", "categorize", "urgent", "high", "medium", "low",
+            "rank", "classify", "ordering", "sequence",
+        ],
     }
 
     hits = 0
     for criterion in criteria:
         indicators = criterion_indicators.get(criterion, [])
-        if any(ind in norm for ind in indicators):
+        if any(ind in _normalise(response) for ind in indicators):
             hits += 1
 
     return hits / len(criteria)
@@ -176,6 +184,17 @@ def grade_response(
         feedback_parts.append(f"Entity matching: {ent_score:.2f}")
         feedback_parts.append(f"Decision criteria: {dec_score:.2f}")
         feedback_parts.append(f"Final score (20%kw + 30%ent + 50%dec): {reward:.2f}")
+
+    elif difficulty == "extreme":
+        ent_score = _entity_score(response, task.get("expected_entities", []))
+        dec_score = _decision_criteria_score(
+            response, task.get("decision_criteria", [])
+        )
+        # Extreme emphasizes reasoning and categorization
+        reward = 0.10 * kw_score + 0.30 * ent_score + 0.60 * dec_score
+        feedback_parts.append(f"Entity matching: {ent_score:.2f}")
+        feedback_parts.append(f"Triage criteria: {dec_score:.2f}")
+        feedback_parts.append(f"Final score (10%kw + 30%ent + 60%dec): {reward:.2f}")
 
     else:
         reward = MIN_SCORE

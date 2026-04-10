@@ -81,13 +81,13 @@ def main() -> None:
     # Ensure at least 3 tasks
     if len(rewards) < 3:
         while len(rewards) < 3:
-            rewards.append(0.5)
+            rewards.append(0.5000)
             steps += 1
 
     avg_score = sum(rewards) / len(rewards)
-    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    rewards_str = ",".join(f"{r:.4f}" for r in rewards)
 
-    print(f"[END] success=true steps={steps} score={avg_score:.3f} rewards={rewards_str}")
+    print(f"[END] success=true steps={steps} score={avg_score:.4f} rewards={rewards_str}")
 
 if __name__ == "__main__":
     main()
