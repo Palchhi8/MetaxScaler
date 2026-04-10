@@ -19,9 +19,10 @@ from typing import Any, Dict, Tuple
 from models import MeetingAction, MeetingObservation, MeetingState
 from tasks import ALL_TASKS, get_task, get_task_count
 from grader import grade_response
+from openenv.core.env_server import Environment
 
 
-class MeetingEnvironment:
+class MeetingEnvironment(Environment):
     """OpenEnv-compliant Meeting Decision Intelligence Environment.
 
     Lifecycle
@@ -152,3 +153,8 @@ class MeetingEnvironment:
             is_done=self._done,
             task_rewards=[round(r, 4) for r in self._task_rewards],
         )
+
+    def close(self) -> None:
+        """Clean up resources. Required by the OpenEnv HTTP server."""
+        pass
+
