@@ -116,22 +116,27 @@ def main() -> None:
         llm_response = call_llm(client, model_name, prompt)
 
         if not llm_response:
-            print("  ⚠ Empty response from LLM — submitting placeholder.")
+            print("  Warning: Empty response from LLM, submitting placeholder.")
             llm_response = "No response generated."
 
-        # Submit to environment
+        # Submit to environment — step() returns a MeetingObservation directly
         action = MeetingAction(response=llm_response)
-        obs, reward, done, info = env.step(action)
+        obs = env.step(action)
+
+        # Read reward/done/feedback from the observation object
+        reward = obs.reward
+        done = obs.done
+        feedback = obs.feedback or "N/A"
 
         total_reward += reward
         task_results.append({
-            "task": info.get("task_id", f"task_{step_num}"),
+            "task": obs.task_id,
             "reward": round(reward, 4),
-            "feedback": info.get("feedback", ""),
+            "feedback": feedback,
         })
 
         print(f"  Reward: {reward:.4f}")
-        print(f"  Feedback: {info.get('feedback', 'N/A')}")
+        print(f"  Feedback: {feedback}")
         print()
 
     # ── Final report ───────────────────────────────────────────────────

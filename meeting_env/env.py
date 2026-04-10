@@ -3,7 +3,7 @@ env.py — OpenEnv-compliant environment for Meeting Decision Intelligence.
 
 Implements the Environment interface with:
   - reset()  → returns initial MeetingObservation
-  - step(action: MeetingAction) → returns (observation, reward, done, info)
+  - step(action: MeetingAction) → returns MeetingObservation 
   - state    → returns MeetingState
 
 The environment cycles through 3 tasks (easy → medium → hard) in a single
@@ -14,7 +14,7 @@ reset/previous-step, submits a response, and is graded immediately.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from models import MeetingAction, MeetingObservation, MeetingState
 from tasks import ALL_TASKS, get_task, get_task_count
@@ -29,15 +29,15 @@ class MeetingEnvironment(Environment):
     ---------
     1. Call ``reset()`` to start a new episode.  Returns the first observation.
     2. Call ``step(action)`` with the agent's response.  The environment grades
-       the response, advances to the next task, and returns:
-       ``(observation, reward, done, info)``.
-    3. Repeat until ``done`` is ``True`` (all 3 tasks completed).
+       the response, advances to the next task, and returns the next observation.
+    3. Repeat until ``observation.done`` is ``True`` (all 3 tasks completed).
     4. Call ``reset()`` to start a new episode.
 
     ``state`` can be called at any time to inspect episode metadata.
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self._episode_id: str = ""
         self._task_index: int = 0
         self._step_count: int = 0
@@ -47,9 +47,14 @@ class MeetingEnvironment(Environment):
 
     # ── OpenEnv interface ──────────────────────────────────────────────
 
-    def reset(self) -> MeetingObservation:
+    def reset(
+        self,
+        seed: Optional[int] = None,
+        episode_id: Optional[str] = None,
+        **kwargs: Any,
+    ) -> MeetingObservation:
         """Initialise a new episode and return the first observation."""
-        self._episode_id = str(uuid.uuid4())
+        self._episode_id = episode_id or str(uuid.uuid4())
         self._task_index = 0
         self._step_count = 0
         self._cumulative_reward = 0.0
@@ -62,19 +67,25 @@ class MeetingEnvironment(Environment):
             task_description=task["task_description"],
             meeting_transcript=task["meeting_transcript"],
             difficulty=task["difficulty"],
-            reward=0.0,
+            reward=0.01,
             done=False,
             feedback=None,
             metadata={"episode_id": self._episode_id, "task_number": 1},
         )
 
     def step(
-        self, action: MeetingAction
-    ) -> Tuple[MeetingObservation, float, bool, Dict[str, Any]]:
+        self,
+        action: MeetingAction,
+        timeout_s: Optional[float] = None,
+        **kwargs: Any,
+    ) -> MeetingObservation:
         """Process the agent's action and return the next observation.
 
+        The OpenEnv framework reads reward and done from the returned
+        observation object directly (observation.reward, observation.done).
+
         Returns:
-            (observation, reward, done, info)
+            MeetingObservation with reward in (0, 1) and done flag.
         """
         if self._done:
             raise RuntimeError(
@@ -132,14 +143,7 @@ class MeetingEnvironment(Environment):
                 },
             )
 
-        info: Dict[str, Any] = {
-            "task_id": task["task_id"],
-            "reward": reward,
-            "feedback": feedback,
-            "step": self._step_count,
-        }
-
-        return obs, reward, done, info
+        return obs
 
     @property
     def state(self) -> MeetingState:
@@ -157,4 +161,3 @@ class MeetingEnvironment(Environment):
     def close(self) -> None:
         """Clean up resources. Required by the OpenEnv HTTP server."""
         pass
-
