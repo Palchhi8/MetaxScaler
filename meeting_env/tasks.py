@@ -26,6 +26,7 @@ from typing import Any, Dict, List
 EASY_TASK: Dict[str, Any] = {
     "task_id": "easy_summarization",
     "difficulty": "easy",
+    "grader": "keyword_grader",
     "task_description": (
         "You are given a raw meeting transcript. Your goal is to produce a "
         "concise summary that captures the KEY TOPICS discussed."
@@ -47,6 +48,7 @@ EASY_TASK: Dict[str, Any] = {
 MEDIUM_TASK: Dict[str, Any] = {
     "task_id": "medium_action_items",
     "difficulty": "medium",
+    "grader": "entity_grader",
     "task_description": (
         "Extract ALL action items. State WHO is responsible and WHAT they need to do."
     ),
@@ -70,6 +72,7 @@ MEDIUM_TASK: Dict[str, Any] = {
 HARD_TASK: Dict[str, Any] = {
     "task_id": "hard_decision",
     "difficulty": "hard",
+    "grader": "decision_grader",
     "task_description": (
         "Address conflicting constraints: $150k budget vs $280k needs. "
         "Options: A ($120k Acme feature), B ($80k Security fix), C ($80k Infra)."
@@ -90,6 +93,7 @@ HARD_TASK: Dict[str, Any] = {
 TRIAGE_TASK: Dict[str, Any] = {
     "task_id": "executive_triage",
     "difficulty": "extreme",
+    "grader": "triage_grader",
     "task_description": (
         "Perform a sentiment analysis and triage the next steps. "
         "Evaluate the tone of the meeting and categorize the follow-up items "

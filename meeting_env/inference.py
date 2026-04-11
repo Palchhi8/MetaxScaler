@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from env import MeetingEnvironment
 from models import MeetingAction
+from tasks import ALL_TASKS
 
 load_dotenv()
 
@@ -56,10 +57,13 @@ def main() -> None:
     obs = env.reset()
     done = False
     rewards = []
+    task_scores: list[tuple[str, str, float]] = []
     steps = 0
+    grader_by_task = {t["task_id"]: t.get("grader", "default_grader") for t in ALL_TASKS}
 
     while not done:
         steps += 1
+        current_task_id = obs.task_id
         prompt = build_prompt(obs.task_description, obs.meeting_transcript)
         llm_response = call_llm(client, model_name, prompt)
 
@@ -75,19 +79,21 @@ def main() -> None:
             reward = 0.99
             
         rewards.append(reward)
+        grader_name = grader_by_task.get(current_task_id, "default_grader")
+        task_scores.append((current_task_id, grader_name, reward))
         done = obs.done
-        print(f"[STEP] reward={reward:.4f}")
-
-    # Ensure at least 3 tasks
-    if len(rewards) < 3:
-        while len(rewards) < 3:
-            rewards.append(0.5000)
-            steps += 1
+        print(f"[TASK_SCORE] task_id={current_task_id} grader={grader_name} score={reward:.4f}")
 
     avg_score = sum(rewards) / len(rewards)
     rewards_str = ",".join(f"{r:.4f}" for r in rewards)
+    task_scores_str = ",".join(
+        f"{task_id}:{grader}:{score:.4f}" for task_id, grader, score in task_scores
+    )
 
-    print(f"[END] success=true steps={steps} score={avg_score:.4f} rewards={rewards_str}")
+    print(
+        f"[END] success=true steps={steps} score={avg_score:.4f} "
+        f"rewards={rewards_str} task_scores={task_scores_str}"
+    )
 
 if __name__ == "__main__":
     main()
