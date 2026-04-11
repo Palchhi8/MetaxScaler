@@ -1,0 +1,15 @@
+.env
+.env.local
+.env.*.local
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+*.log
+Dockerfile*
+uv.lock
+meeting_env/inference.py
+TODO*.md
+
