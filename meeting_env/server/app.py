@@ -54,6 +54,11 @@ app = create_app(
 )
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 def main(host: str = "0.0.0.0", port: int = 8000):
     """
     Entry point for direct execution via uv run or python -m.

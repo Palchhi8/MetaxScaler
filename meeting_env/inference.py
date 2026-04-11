@@ -59,7 +59,7 @@ def main() -> None:
     rewards = []
     task_scores: list[tuple[str, str, float]] = []
     steps = 0
-    grader_by_task = {t["task_id"]: t.get("grader", "default_grader") for t in ALL_TASKS}
+    grader_by_task = {t["task_id"]: t["grader"] for t in ALL_TASKS}
 
     while not done:
         steps += 1
