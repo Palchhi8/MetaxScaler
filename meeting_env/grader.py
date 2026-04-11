@@ -141,66 +141,60 @@ def _decision_criteria_score(response: str, criteria: List[str]) -> float:
 # Public grading API
 # ───────────────────────────────────────────────────────────────────────────
 
+# ───────────────────────────────────────────────────────────────────────────
+# Named Grader Functions (required for validation)
+# ───────────────────────────────────────────────────────────────────────────
+
+def keyword_grader(response: str, task: Dict[str, Any]) -> Tuple[float, str]:
+    """Easy task: pure keyword matching."""
+    if not response or len(response.strip()) < 10:
+        return MIN_SCORE, f"Response is empty or too short. Minimal score: {MIN_SCORE}"
+    kw_score = _keyword_score(response, task.get("expected_keywords", []))
+    reward = _clamp(kw_score)
+    return reward, f"Keyword coverage: {kw_score:.2f} | Final score: {reward:.2f}"
+
+def entity_grader(response: str, task: Dict[str, Any]) -> Tuple[float, str]:
+    """Medium task: keywords + entities."""
+    if not response or len(response.strip()) < 10:
+        return MIN_SCORE, f"Response is empty or too short. Minimal score: {MIN_SCORE}"
+    kw_score = _keyword_score(response, task.get("expected_keywords", []))
+    ent_score = _entity_score(response, task.get("expected_entities", []))
+    reward = _clamp(0.40 * kw_score + 0.60 * ent_score)
+    return reward, f"Keywords: {kw_score:.2f} | Entities: {ent_score:.2f} | Final: {reward:.2f}"
+
+def decision_grader(response: str, task: Dict[str, Any]) -> Tuple[float, str]:
+    """Hard task: keywords + entities + decision criteria."""
+    if not response or len(response.strip()) < 10:
+        return MIN_SCORE, f"Response is empty or too short. Minimal score: {MIN_SCORE}"
+    kw_score = _keyword_score(response, task.get("expected_keywords", []))
+    ent_score = _entity_score(response, task.get("expected_entities", []))
+    dec_score = _decision_criteria_score(response, task.get("decision_criteria", []))
+    reward = _clamp(0.20 * kw_score + 0.30 * ent_score + 0.50 * dec_score)
+    return reward, f"Keywords: {kw_score:.2f} | Entities: {ent_score:.2f} | Decisions: {dec_score:.2f} | Final: {reward:.2f}"
+
+def triage_grader(response: str, task: Dict[str, Any]) -> Tuple[float, str]:
+    """Extreme task: heavy weighting on triage criteria."""
+    if not response or len(response.strip()) < 10:
+        return MIN_SCORE, f"Response is empty or too short. Minimal score: {MIN_SCORE}"
+    kw_score = _keyword_score(response, task.get("expected_keywords", []))
+    ent_score = _entity_score(response, task.get("expected_entities", []))
+    dec_score = _decision_criteria_score(response, task.get("decision_criteria", []))
+    reward = _clamp(0.10 * kw_score + 0.30 * ent_score + 0.60 * dec_score)
+    return reward, f"Keywords: {kw_score:.2f} | Entities: {ent_score:.2f} | Triage: {dec_score:.2f} | Final: {reward:.2f}"
+
 def grade_response(
     response: str,
     task: Dict[str, Any],
 ) -> Tuple[float, str]:
-    """Grade an agent response against the given task definition.
-
-    Args:
-        response: The agent's textual answer.
-        task: Task dict from tasks.py (must contain expected_keywords etc.).
-
-    Returns:
-        (reward, feedback) where reward is strictly in (0, 1).
-    """
-    # Penalise empty / very short responses — never return exact 0.0
-    if not response or len(response.strip()) < 10:
-        return MIN_SCORE, f"Response is empty or too short. Minimal score: {MIN_SCORE}"
-
-    difficulty = task["difficulty"]
-    feedback_parts: List[str] = []
-
-    # ── Keyword score (all difficulties) ──────────────────────────────
-    kw_score = _keyword_score(response, task.get("expected_keywords", []))
-    feedback_parts.append(f"Keyword coverage: {kw_score:.2f}")
-
-    if difficulty == "easy":
-        reward = kw_score
-        feedback_parts.append(f"Final score (keyword only): {reward:.2f}")
-
-    elif difficulty == "medium":
-        ent_score = _entity_score(response, task.get("expected_entities", []))
-        reward = 0.40 * kw_score + 0.60 * ent_score
-        feedback_parts.append(f"Entity matching: {ent_score:.2f}")
-        feedback_parts.append(f"Final score (40%kw + 60%ent): {reward:.2f}")
-
-    elif difficulty == "hard":
-        ent_score = _entity_score(response, task.get("expected_entities", []))
-        dec_score = _decision_criteria_score(
-            response, task.get("decision_criteria", [])
-        )
-        reward = 0.20 * kw_score + 0.30 * ent_score + 0.50 * dec_score
-        feedback_parts.append(f"Entity matching: {ent_score:.2f}")
-        feedback_parts.append(f"Decision criteria: {dec_score:.2f}")
-        feedback_parts.append(f"Final score (20%kw + 30%ent + 50%dec): {reward:.2f}")
-
-    elif difficulty == "extreme":
-        ent_score = _entity_score(response, task.get("expected_entities", []))
-        dec_score = _decision_criteria_score(
-            response, task.get("decision_criteria", [])
-        )
-        # Extreme emphasizes reasoning and categorization
-        reward = 0.10 * kw_score + 0.30 * ent_score + 0.60 * dec_score
-        feedback_parts.append(f"Entity matching: {ent_score:.2f}")
-        feedback_parts.append(f"Triage criteria: {dec_score:.2f}")
-        feedback_parts.append(f"Final score (10%kw + 30%ent + 60%dec): {reward:.2f}")
-
-    else:
-        reward = MIN_SCORE
-        feedback_parts.append(f"Unknown difficulty '{difficulty}'.")
-
-    # STRICTLY clamp to open interval (MIN_SCORE, MAX_SCORE)
-    reward = _clamp(reward)
-    feedback = " | ".join(feedback_parts)
-    return reward, feedback
+    """Main dispatcher: select grader by name from task."""
+    grader_name = task.get("grader", "keyword_grader")
+    
+    graders = {
+        "keyword_grader": keyword_grader,
+        "entity_grader": entity_grader,
+        "decision_grader": decision_grader,
+        "triage_grader": triage_grader,
+    }
+    
+    grader = graders.get(grader_name, keyword_grader)
+    return grader(response, task)

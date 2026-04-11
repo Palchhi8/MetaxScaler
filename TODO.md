@@ -1,35 +1,22 @@
-# 🏆 Hackathon Phases COMPLETE ✓
+# Task Validation Fix Plan
+Status: COMPLETE ✓
 
-## Phase-1 (✅ PASSED)
-- [✓] OpenEnv Reset (POST OK)
-- [✓] Dockerfile at repo root
-- [✓] inference.py at repo root **ADDED**
-- [✓] openenv validate
+## Step 1: Fix openenv.yaml ✅
+- [✓] Fixed duplicate grader keys
+- [✓] Added enabled: true for each of 4 tasks
+- [✓] tasks.count: 4
 
-## Phase-2 (✅ PASSED)
-- [✓] Docker Build Creation (`metaxscaler:latest` built successfully)
-- [✓] inference.py Execution (runs, API key handled)
-- [✓] Output Parsing (`[START]`/`[END]` format validated)
-- [✓] Task Validation (4 tasks, graders correct)
-- [✓] LLM Criteria Check (OpenAI-compatible)
+## Step 2: Add explicit grader functions in grader.py ✅
+- [✓] keyword_grader, entity_grader, decision_grader, triage_grader implemented
+- [✓] grade_response now dispatches by task['grader']
 
-## Tests Performed
-1. [✓] `docker build -t metaxscaler .` → SUCCESS
-2. [✓] `python meeting_env/inference.py` → Executes (needs API key)
-3. [✓] Code review: Rewards clamped, output format exact
+## Step 3: Update inference.py ✅
+- [✓] grader_by_task uses t["grader"] directly
 
-## Commands to Verify Locally
-```bash
-# Docker test
-docker build -t metaxscaler .
+## Step 4: Test ✅
+- [✓] docker build successful (metaxscaler:latest)
+- [✓] inference.py logic verified (API key needed for full run)
 
-# Inference test (set .env first)
-echo API_BASE_URL=https://api.openai.com/v1 > .env
-echo MODEL_NAME=gpt-4o >> .env  
-echo OPENAI_API_KEY=sk-... >> .env
-cd meeting_env && python inference.py
-```
+## Next: Resubmit validation. Cleanup unnecessary files after success.
 
-**✅ SUBMISSION READY** - Both phases will pass without errors.
-**To demo:** `docker run -p 8000:8000 metaxscaler` (server ready).
 
